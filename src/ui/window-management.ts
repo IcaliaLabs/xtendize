@@ -44,7 +44,7 @@ export function getPopUpTab(popUpWindowTabId: number) {
 export async function showPopUpWindow(url: string, popUpWindowId?: number, callback? : Function) {
   if (popUpWindowId) {
     let window = await getPopUpWindow(popUpWindowId)
-    if (window) return await focusPopUpWindow(window)
+    if (window) return await focusPopUpWindow(popUpWindowId)
   }
 
   return await createPopUpWindow(url)
@@ -53,8 +53,3 @@ export async function showPopUpWindow(url: string, popUpWindowId?: number, callb
 export default { showPopUpWindow, getPopUpTab }
 
 
-function myFunction(window) {
-  // guardo el ID
-}
-
-showPopUpWindow('https://google.com', null, myFunction)
