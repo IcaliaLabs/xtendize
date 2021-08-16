@@ -227,6 +227,6 @@ jobs:
       - name: Publish Package
         uses: icalia-actions/run-ci-compose@v0.0.2
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.ICALIALABS_NPM_TOKEN }}
         with:
           service-name: publisher
