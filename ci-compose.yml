@@ -1,0 +1,27 @@
+volumes:
+  node_modules:
+
+services:
+  tests: &lib
+    image: icalialabs/xtendize:testing-latest
+    build: &lib_build
+      target: testing
+      context: .
+      args:
+        APP_PATH: ${PWD:-/icalialabs/xtendize}
+        DEVELOPER_UID: ${UID:-1000}
+        DEVELOPER_USERNAME: ${USER:-you}
+    command: yarn test
+    volumes:
+      - .:${PWD:-/icalialabs/xtendize}
+      - node_modules:${PWD:-/icalialabs/xtendize}/node_modules
+
+  publisher:
+    <<: *lib
+    image: icalialabs/xtendize:latest
+    build:
+      <<: *lib_build
+      target: release
+    command: yarn publish --non-interactive --access public
+    environment:
+      NPM_AUTH_TOKEN: ${NPM_AUTH_TOKEN}
