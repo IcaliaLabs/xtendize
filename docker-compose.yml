@@ -1,0 +1,16 @@
+services:
+  chrome:
+    image: browserless/chrome:latest
+    ports:
+      - "${ENGINEAR_CHROME_PORT:-3333}:3333"
+    # Mount application source code to support file uploading
+    # (otherwise Chrome won't be able to find files).
+    # NOTE: Make sure you use absolute paths in `#attach_file`.
+    volumes:
+      - .:${PWD:-/icalialabs/xtendize}:cached
+    environment:
+      # By default, it uses 3000, which is typically used by Rails.
+      PORT: 3333
+      # Set connection timeout to avoid timeout exception during debugging
+      # https://docs.browserless.io/docs/docker.html#connection-timeout
+      CONNECTION_TIMEOUT: 600000

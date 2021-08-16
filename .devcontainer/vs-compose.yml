@@ -7,7 +7,7 @@ services:
   lib:
     image: icalialabs/xtendize:development
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
       target: development
       args:
@@ -17,7 +17,7 @@ services:
     working_dir: ${PWD}
     entrypoint: ${PWD}/bin/dev-entrypoint
     volumes:
-      - ..:${PWD}
+      - .:${PWD}
       - node_modules:${PWD}/node_modules
       - vscode_extensions:/home/${USER:-you}/.vscode-server/extensions
       - vscode_insiders_extensions:/home/${USER:-you}/.vscode-server-insiders/extensions
