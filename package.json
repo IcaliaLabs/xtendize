@@ -1,0 +1,31 @@
+{
+  "name": "xtendize",
+  "version": "0.0.1",
+  "description": "Helps us create chrome extension apps",
+  "main": "lib/main.js",
+  "scripts": {
+    "debug-action": "yarn run build && node -r dotenv/config index.js",
+    "build": "tsc && ncc build",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "test": "jest --coverage",
+    "pre-checkin": "yarn run format && yarn run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IcaliaLabs/xtendize.git"
+  },
+  "keywords": [
+    "chrome",
+    "icalia",
+    "extension"
+  ],
+  "author": "Icalia Labs",
+  "contributors": [
+    {
+      "name": "Vov",
+      "url": "https://ical.ink/vov"
+    }
+  ],
+  "license": "MIT"
+}

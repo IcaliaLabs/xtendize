@@ -1,0 +1,66 @@
+Arguments: 
+  /usr/local/bin/node /opt/yarn-v1.22.5/bin/yarn.js check --integrity
+
+PATH: 
+  /Users/vov/github.com/IcaliaLabs/xtendize/node_modules/.bin:/Users/vov/github.com/IcaliaLabs/xtendize/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+Yarn version: 
+  1.22.5
+
+Node version: 
+  14.17.5
+
+Platform: 
+  linux x64
+
+Trace: 
+  TypeError: Cannot convert undefined or null to object
+      at keys (<anonymous>)
+      at InstallationIntegrityChecker.<anonymous> (/opt/yarn-v1.22.5/lib/cli.js:47519:65)
+      at Generator.next (<anonymous>)
+      at step (/opt/yarn-v1.22.5/lib/cli.js:310:30)
+      at /opt/yarn-v1.22.5/lib/cli.js:328:14
+      at new Promise (<anonymous>)
+      at new F (/opt/yarn-v1.22.5/lib/cli.js:5301:28)
+      at InstallationIntegrityChecker.<anonymous> (/opt/yarn-v1.22.5/lib/cli.js:307:12)
+      at InstallationIntegrityChecker._generateIntegrityFile (/opt/yarn-v1.22.5/lib/cli.js:47567:20)
+      at InstallationIntegrityChecker.<anonymous> (/opt/yarn-v1.22.5/lib/cli.js:47700:31)
+
+npm manifest: 
+  {
+    "name": "xtendize",
+    "version": "0.0.1",
+    "description": "Helps us create chrome extension apps",
+    "main": "lib/main.js",
+    "scripts": {
+      "debug-action": "yarn run build && node -r dotenv/config index.js",
+      "build": "tsc && ncc build",
+      "format": "prettier --write **/*.ts",
+      "format-check": "prettier --check **/*.ts",
+      "test": "jest --coverage",
+      "pre-checkin": "yarn run format && yarn run build"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/IcaliaLabs/xtendize.git"
+    },
+    "keywords": [
+      "chrome",
+      "icalia",
+      "extension"
+    ],
+    "author": "Icalia Labs",
+    "contributors": [
+      {
+        "name": "Vov",
+        "url": "https://ical.ink/vov"
+      }
+    ],
+    "license": "MIT"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
