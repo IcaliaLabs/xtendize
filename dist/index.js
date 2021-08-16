@@ -43,58 +43,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.showPopUpWindow = exports.getPopUpTab = void 0;
 const webextension_polyfill_1 = __importDefault(__nccwpck_require__(130));
-function createPopUpWindow(url, callback) {
+function createPopUpWindow(createData) {
     return __awaiter(this, void 0, void 0, function* () {
-        let window = yield webextension_polyfill_1.default.windows.create({
-            url: url,
-            type: "popup",
-            width: 360,
-            left: 1080,
-            focused: true,
-            top: 0
-        });
-        // popUpWindowId = window.id
-        // popUpWindowTabId = window.tabs[0].id
-        // Wait until page is loaded to inject the content script, or else a
-        // "cannot access contents of url """ error will be raised:
-        if (callback)
-            callback(window);
-        return;
+        createData.type = "popup";
+        createData.focused = true;
+        let window = webextension_polyfill_1.default.windows.create(createData);
+        // TODO: Store the window id on chrome.storage
+        console.log("window:", window);
+        return window;
     });
 }
-function getPopUpWindow(popUpWindowId) {
+function getPopUpWindow() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (popUpWindowId == null)
-            return null;
-        try {
-            return yield webextension_polyfill_1.default.windows.get(popUpWindowId);
-        }
-        catch (e) { }
-        return null;
+        let popUpWindowId = -1; // TODO: Get popUpWindowId from chrome.storage
+        return yield webextension_polyfill_1.default.windows.get(popUpWindowId);
     });
 }
-function focusPopUpWindow(popUpWindowId) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return yield webextension_polyfill_1.default.windows.update(popUpWindowId, {
-            drawAttention: true,
-            focused: true
-        });
+function focusPopUpWindow(windowId) {
+    return webextension_polyfill_1.default.windows.update(windowId, {
+        drawAttention: true,
+        focused: true
     });
 }
 function getPopUpTab(popUpWindowTabId) {
-    if (typeof popUpWindowTabId === 'undefined' || !popUpWindowTabId)
-        return;
-    return webextension_polyfill_1.default.tabs.get(popUpWindowTabId);
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield webextension_polyfill_1.default.tabs.get(popUpWindowTabId);
+    });
 }
 exports.getPopUpTab = getPopUpTab;
-function showPopUpWindow(url, popUpWindowId, callback) {
+function showPopUpWindow(createData) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (popUpWindowId) {
-            let window = yield getPopUpWindow(popUpWindowId);
-            if (window)
-                return yield focusPopUpWindow(popUpWindowId);
+        try {
+            let window = yield getPopUpWindow();
+            if (window.id)
+                return focusPopUpWindow(window.id);
         }
-        return yield createPopUpWindow(url);
+        catch (e) { }
+        return yield createPopUpWindow(createData);
     });
 }
 exports.showPopUpWindow = showPopUpWindow;

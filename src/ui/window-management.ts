@@ -1,53 +1,44 @@
 import browser from "webextension-polyfill"
 
+import Tab = browser.Tabs.Tab
+import WindowCreateData = browser.Windows.CreateCreateDataType
+import Window = browser.Windows.Window
 
-async function createPopUpWindow(url : string, callback? : Function) {
-  let window = await browser.windows.create({
-    url: url,
-    type: "popup",
-    width: 360,
-    left: 1080,
-    focused: true,
-    top: 0
-  })
-  
-  // popUpWindowId = window.id
-  // popUpWindowTabId = window.tabs[0].id
+async function createPopUpWindow(createData: WindowCreateData) : Promise<Window> {
+  createData.type = "popup"
+  createData.focused = true
 
-  // Wait until page is loaded to inject the content script, or else a
-  // "cannot access contents of url """ error will be raised:
-  if (callback) callback(window)
-  return
+  let window = browser.windows.create(createData)
+
+  // TODO: Store the window id on chrome.storage
+  console.log("window:", window)
+
+  return window
 }
 
-async function getPopUpWindow(popUpWindowId: number) {
-  if (popUpWindowId == null) return null
-
-  try { return await browser.windows.get(popUpWindowId) } catch (e) {}
-
-  return null
+async function getPopUpWindow() : Promise<Window> {
+  let popUpWindowId = -1 // TODO: Get popUpWindowId from chrome.storage
+  return await browser.windows.get(popUpWindowId)
 }
 
-async function focusPopUpWindow(popUpWindowId: number) {
-  return await browser.windows.update(popUpWindowId, {
+function focusPopUpWindow(windowId: number) : Promise<Window> {
+  return browser.windows.update(windowId, {
     drawAttention: true,
     focused: true
   })
 }
 
-export function getPopUpTab(popUpWindowTabId: number) {
-  if (typeof popUpWindowTabId === 'undefined' || !popUpWindowTabId) return
-
-  return browser.tabs.get(popUpWindowTabId)
+export async function getPopUpTab(popUpWindowTabId: number) : Promise<Tab> {
+  return await browser.tabs.get(popUpWindowTabId)
 }
 
-export async function showPopUpWindow(url: string, popUpWindowId?: number, callback? : Function) {
-  if (popUpWindowId) {
-    let window = await getPopUpWindow(popUpWindowId)
-    if (window) return await focusPopUpWindow(popUpWindowId)
-  }
+export async function showPopUpWindow(createData: WindowCreateData) : Promise<Window> {
+  try {
+    let window = await getPopUpWindow()
+    if (window.id) return focusPopUpWindow(window.id)
+  } catch (e) {}
 
-  return await createPopUpWindow(url)
+  return await createPopUpWindow(createData)
 }
 
 export default { showPopUpWindow, getPopUpTab }
