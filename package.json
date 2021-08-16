@@ -27,5 +27,8 @@
       "url": "https://ical.ink/vov"
     }
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "webextension-polyfill": "^0.8.0"
+  }
 }
