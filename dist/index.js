@@ -42,7 +42,6 @@ exports.showPopUpWindow = exports.getPopUpTab = void 0;
 function createPopUpWindow(createData) {
     createData.type = "popup";
     createData.focused = true;
-    debugger;
     console.log("createData:", createData);
     return chrome.windows.create(createData);
 }
@@ -66,13 +65,16 @@ function getPopUpTab(popUpWindowTabId) {
 exports.getPopUpTab = getPopUpTab;
 function showPopUpWindow(createData) {
     return __awaiter(this, void 0, void 0, function* () {
-        // try {
-        //   let window = await getPopUpWindow()
-        //   if (window.id) return focusPopUpWindow(window.id)
-        // } catch (e) {}
+        try {
+            let window = yield getPopUpWindow();
+            if (window.id)
+                return focusPopUpWindow(window.id);
+        }
+        catch (e) {
+            console.log("showPopUpWindow: No window:", e);
+        }
         console.log("showPopUpWindow: createData:", createData);
-        // return await createPopUpWindow(createData)
-        return null;
+        return yield createPopUpWindow(createData);
     });
 }
 exports.showPopUpWindow = showPopUpWindow;

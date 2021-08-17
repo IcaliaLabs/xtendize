@@ -7,7 +7,6 @@ import Window = chrome.windows.Window
 function createPopUpWindow(createData: WindowCreateData) : Promise<Window> {
   createData.type = "popup"
   createData.focused = true
-  debugger
   console.log("createData:", createData)
   return chrome.windows.create(createData)
 }
@@ -28,17 +27,16 @@ export async function getPopUpTab(popUpWindowTabId: number) : Promise<Tab> {
   return await chrome.tabs.get(popUpWindowTabId)
 }
 
-export async function showPopUpWindow(createData: WindowCreateData) : Promise<Window | null> {
-  // try {
-  //   let window = await getPopUpWindow()
-  //   if (window.id) return focusPopUpWindow(window.id)
-  // } catch (e) {}
+export async function showPopUpWindow(createData: WindowCreateData) : Promise<Window> {
+  try {
+    let window = await getPopUpWindow()
+    if (window.id) return focusPopUpWindow(window.id)
+  } catch (e) {
+    console.log("showPopUpWindow: No window:", e)
+  }
 
   console.log("showPopUpWindow: createData:", createData)
-  // return await createPopUpWindow(createData)
-  return null
+  return await createPopUpWindow(createData)
 }
 
 export default { showPopUpWindow, getPopUpTab }
-
-
