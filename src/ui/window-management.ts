@@ -7,7 +7,6 @@ import Window = chrome.windows.Window
 function createPopUpWindow(createData: WindowCreateData) : Promise<Window> {
   createData.type = "popup"
   createData.focused = true
-  console.log("createData:", createData)
   return chrome.windows.create(createData)
 }
 
@@ -35,7 +34,6 @@ export async function showPopUpWindow(createData: WindowCreateData) : Promise<Wi
     console.log("showPopUpWindow: No window:", e)
   }
 
-  console.log("showPopUpWindow: createData:", createData)
   return await createPopUpWindow(createData)
 }
 
