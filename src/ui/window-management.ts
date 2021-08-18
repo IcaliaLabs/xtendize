@@ -16,12 +16,28 @@ function readLocalStorage (key: string) : Promise<number> {
   });
 };
 
+function writeLocalStorage (key: string, value: any) : Promise<void> {
+  return new Promise((resolve, reject) => {
+    try{
+      let windowObject = {}
+      windowObject[key] = value;
+      chrome.storage.local.set(windowObject);
+
+      resolve()
+    } catch (err) {
+      console.log("err", err);
+      
+      reject()
+    }
+  })
+}
+
 async function createPopUpWindow(createData: WindowCreateData) : Promise<Window>{
   createData.type = "popup"
   createData.focused = true
   let window = await chrome.windows.create(createData);
-
-  chrome.storage.local.set({activeWindow: window.id});
+  
+  await writeLocalStorage('activeWindow', window.id);
 
   return window;
 }
