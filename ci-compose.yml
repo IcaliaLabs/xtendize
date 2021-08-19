@@ -17,7 +17,6 @@ services:
       - node_modules:${PWD:-/icalialabs/xtendize}/node_modules
 
   publisher:
-    <<: *lib
     image: icalialabs/xtendize:latest
     build:
       <<: *lib_build
