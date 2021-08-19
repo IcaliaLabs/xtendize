@@ -177,12 +177,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Checkout Code
-        uses: actions/checkout@v1
-
       - name: Publish Package
-        uses: icalia-actions/run-ci-compose@v0.0.2
-        env:
-          NPM_AUTH_TOKEN: ${{ secrets.ICALIALABS_NPM_TOKEN }}
-        with:
-          service-name: publisher
+        run: |-
+          docker run \
+            -e NPM_AUTH_TOKEN=${{ secrets.ICALIALABS_NPM_TOKEN }} \
+            icalialabs/xtendize:${{ github.sha }} \
+            sh -c "find . && yarn publish --non-interactive --access public"
