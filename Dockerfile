@@ -106,10 +106,23 @@ ARG DEVELOPER_UID=1000
 COPY --chown=${DEVELOPER_UID} . ${APP_PATH}/
 RUN yarn build
 
-RUN rm -rf .env .npmignore __test__ action.yml bin ci-compose.yml coverage src tsconfig.json yarn.lock tmp
+RUN rm -rf \
+  .env \
+  .npmignore \
+  __test__ \
+  bin \
+  .devcontainer \
+  *-compose.yml \
+  coverage \
+  src \
+  tsconfig.json \
+  node_modules \
+  yarn.lock \
+  tmp
 
 # Stage V: Release =============================================================
 FROM runtime AS release
 ARG APP_PATH=/icalialabs/xtendize
 COPY --from=builder --chown=node:node ${APP_PATH} /icalialabs/xtendize
 WORKDIR /icalialabs/xtendize
+CMD [ "find", "." ]
