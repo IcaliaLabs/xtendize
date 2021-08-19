@@ -63,8 +63,9 @@ function focusPopUpWindow(windowId: number) : Promise<Window> {
   })
 }
 
-export async function getPopUpTab(popUpWindowTabId: number) : Promise<Tab> {
-  return await chrome.tabs.get(popUpWindowTabId)
+export async function getPopUpTab() : Promise<Tab> {
+  let popUpWindowTabId = await readLocalStorage('popUpWindowTabId')
+  return chrome.tabs.get(popUpWindowTabId)
 }
 
 export async function showPopUpWindow(createData: WindowCreateData) : Promise<Window> {
