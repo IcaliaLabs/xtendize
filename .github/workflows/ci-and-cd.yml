@@ -148,7 +148,7 @@ jobs:
     name: Publish Package
     runs-on: ubuntu-latest
     needs: [testing, release_build]
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     env:
       BUILD_RUNNER_UID: ${{ needs.release_build.outputs.build-runner-uid }}
       BUILD_RUNNER_USER: ${{ needs.release_build.outputs.build-runner-user }}
