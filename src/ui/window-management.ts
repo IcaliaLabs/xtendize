@@ -12,12 +12,10 @@ async function injectContentScriptWhenReady(tabId: number, changeInfo: TabChange
   if (tabId != popUpWindowTabId || changeInfo.status !== 'complete') return
 
   // Request the loaded app website to initiate the extension connection:
-  await chrome.scripting.executeScript({
+  return chrome.scripting.executeScript({
     target: { tabId: popUpWindowTabId },
     func: windowMessagingSetup
   })
-
-  await chrome.tabs.onUpdated.removeListener(injectContentScriptWhenReady)
 }
 
 function readLocalStorage (key: string) : Promise<number> {
