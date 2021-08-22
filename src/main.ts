@@ -1,4 +1,2 @@
-export * from "./ui/window-management"
-export * from "./ui/window-messaging"
-export * from "./pop-up-window"
 export * from "./for-website"
+export * from "./pop-up-window"
