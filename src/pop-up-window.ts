@@ -1,10 +1,11 @@
 ///<reference types="chrome"/>
 
+import { getActionFor } from "./action-mapping"
 import { showPopUpWindow, getPopUpTab } from "./ui/window-management"
 
 function generateExtensionToken(): string {
   let extensionToken = Math.random().toString(36).substr(2)
-  if (chrome.storage) chrome.storage.local.set({extensionToken})
+  if (chrome.storage) chrome.storage.local.set({ extensionToken })
 
   return extensionToken
 }
@@ -15,7 +16,7 @@ function getExtensionToken(): Promise<string> {
 
     chrome.storage.local.get(["extensionToken"], result => {
       const { extensionToken } = result
-      console.debug ("extensionToken:", extensionToken)
+      console.debug("extensionToken:", extensionToken)
       if (typeof extensionToken === undefined) resolve(generateExtensionToken())
       else resolve(extensionToken)
     })
@@ -26,12 +27,6 @@ function sendToken(_message: any, _sender: any, sendResponse: any): void {
   console.debug("Responding to connection request from website...")
   let extensionToken = generateExtensionToken()
   sendResponse(extensionToken)
-  return 
-}
-
-function nullAction(message: any, sender: any, _sendResponse: any): void {
-  const { type } = message
-  console.warn(`Received unknown message type '${type}':`, message, sender)
   return
 }
 
@@ -42,8 +37,8 @@ export class PopUpWindow {
   top: number
   uniqueId: number
   extensionId: string
-  messageMap: { [name: string]: Function } // { [name: string]: Array<Function> }
- 
+  actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
+
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.uniqueId = Math.random()
@@ -51,8 +46,8 @@ export class PopUpWindow {
     this.width = args.width
     this.left = args.left
     this.top = args.top
-    this.messageMap = {
-      "xtendize:extension-token-requested" : sendToken
+    this.actionMap = {
+      "xtendize:extension-token-requested": sendToken
     }
 
     // Route messages coming from the app loaded in the window:
@@ -60,7 +55,7 @@ export class PopUpWindow {
       this.routeInboundMessage.bind(this)
     )
   }
- 
+
   show() {
     const { url, width, left, top } = this
     return showPopUpWindow({ url, width, left, top })
@@ -77,9 +72,9 @@ export class PopUpWindow {
     for (const [messageType, responder] of Object.entries(subscribers)) {
       if (messageType == "xtendize:extension-token-requested") continue
 
-      // if (!this.messageMap[messageType]) this.messageMap[messageType] = []
-      // this.messageMap[messageType].push(responder)
-      this.messageMap[messageType] = responder
+      // if (!this.actionMap[messageType]) this.messageMap[messageType] = []
+      // this.actionMap[messageType].push(responder)
+      this.actionMap[messageType] = responder
     }
   }
 
@@ -93,12 +88,7 @@ export class PopUpWindow {
     }
 
     const { type } = message
-    const action = this.getActionFor(type)
+    const action = getActionFor(this.actionMap, type)
     return action(message, sender, sendResponse)
-  }
-
-  private getActionFor(messageType: string): Function {// Array<Function> {
-    let action: Function = this.messageMap[messageType]
-    return (!action) ? nullAction : action
   }
 }
