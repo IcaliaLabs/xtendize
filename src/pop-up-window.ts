@@ -30,12 +30,6 @@ function getExtensionToken(): Promise<string> {
   })
 }
 
-function sendToken(_message: any, _sender: any, sendResponse: any): void {
-  let extensionToken = generateExtensionToken()
-  sendResponse(extensionToken)
-  return
-}
-
 function readLocalStorage (key: string) : Promise<number> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get([key], function (result) {
@@ -69,7 +63,8 @@ export class PopUpWindow {
     this.top = args.top
     
     this.actionMap = {}
-    this.actionMap[`${messageTypePrefix}:extension-token-requested`] = sendToken
+    const tokenReq = `${messageTypePrefix}:extension-token-requested`
+    this.actionMap[tokenReq] = this.handleTokenRequest.bind(this)
 
     // Route messages coming from the app loaded in the window:
     chrome.runtime.onMessageExternal.addListener(
@@ -126,6 +121,14 @@ export class PopUpWindow {
     const { type } = message
     const action = getActionFor(this.actionMap, type)
     return action(message, sender, sendResponse)
+  }
+
+  private handleTokenRequest(_message: any, _sender: any, sendResponse: any): void {
+    let extensionToken = generateExtensionToken()
+    const logPrefix = `[${this.messageTypePrefix} extension]`
+    console.debug(`${logPrefix} Received token request. Responding with token "${extensionToken}"...`)
+    sendResponse(extensionToken)
+    return
   }
 
   private async createPopUpWindow(createData: WindowCreateData) : Promise<Window> {

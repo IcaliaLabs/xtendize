@@ -82,7 +82,7 @@ export class Extension {
       { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug(`${logPrefix} Received token from extension:`, token)
+        console.debug(`${logPrefix} Received token from extension: "${token}". Connection started.`)
         window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
       }
     )
