@@ -74,7 +74,6 @@ export class Extension {
 
   // Requests a token from the extension:
   private requestTokenFromExtension(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
-    console.debug("requestTokenFromExtension:", message)
     const { messageTypePrefix } = this
     this.sendMessage(
       { type: `${messageTypePrefix}:extension-token-requested` },
