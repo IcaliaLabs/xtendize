@@ -3,9 +3,9 @@
 import MessageSender = chrome.runtime.MessageSender
 
 export function routeMessagesToWindow(messageTypePrefix: string) {
-  const logPrefix = `[${messageTypePrefix}]`
-  const extTokenReq = `${messageTypePrefix}:extension-token-requested`
-  console.log(`${logPrefix} Triggering the "${extTokenReq}" message:`)
+  const logPrefix = `[${messageTypePrefix} extension]`
+  const connStartReq = `${messageTypePrefix}:extension-connection-start-requested`
+  console.log(`${logPrefix} Triggering the "${connStartReq}" message to start the connection...`)
 
   // Note that this script is injected into the app website loaded in the popup.
   // The first thing we'll do is to trigger the 'extension-token-requested'
@@ -13,7 +13,7 @@ export function routeMessagesToWindow(messageTypePrefix: string) {
   // messages from the extension:
   // TODO: Figure out the origin thing...
   const mOrigin = '*'
-  window.postMessage({ type: extTokenReq }, mOrigin)
+  window.postMessage({ type: connStartReq }, mOrigin)
 
   // Listen for incoming messages, and forward them to enginear site's listener:
   chrome.runtime.onMessage.addListener((message: any, sender: MessageSender, sendResponse: any) => {

@@ -15,9 +15,10 @@ export class Extension {
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.messageTypePrefix = args.messageTypePrefix
-    this.actionMap = {
-      "xtendize:extension-token-requested": this.requestTokenFromExtension.bind(this)
-    }
+
+    const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
+    this.actionMap = {}
+    this.actionMap[connStartReq] = this.requestTokenFromExtension.bind(this)
   }
 
   start() {
@@ -30,8 +31,9 @@ export class Extension {
   }
 
   routeMessagesTo(subscribers: { [name: string]: Function }) {
+    const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
     for (const [messageType, responder] of Object.entries(subscribers)) {
-      if (messageType == "xtendize:extension-token-requested") continue
+      if (messageType == connStartReq) continue
       this.actionMap[messageType] = responder
     }
   }
@@ -62,22 +64,23 @@ export class Extension {
     if (
       typeof type === 'undefined' ||
       typeof type !== 'string' ||
-      !(type.startsWith('xtendize:') || type.startsWith(this.messageTypePrefix))
+      !type.startsWith(this.messageTypePrefix)
     ) return
 
     const action = getActionFor(this.actionMap, type)
     return action(message, sender, sendResponse)
   }
 
-  // Requests a token from Enginear Chrome Extension:
+  // Requests a token from the extension:
   private requestTokenFromExtension(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
     console.debug("requestTokenFromExtension:", message)
+    const { messageTypePrefix } = this
     this.sendMessage(
-      { type: "xtendize:extension-token-requested" },
+      { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug("[Enginear website] Received token from extension:", token)
-        window.sessionStorage.setItem("extensionToken", token)
+        console.debug(`[${messageTypePrefix} website] Received token from extension:`, token)
+        window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
       }
     )
   }

@@ -56,18 +56,21 @@ export class PopUpWindow {
   top: number
   uniqueId: number
   extensionId: string
+  messageTypePrefix: string
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
 
   constructor(args: any) {
+    const { messageTypePrefix } = args
     this.extensionId = args.extensionId
+    this.messageTypePrefix = messageTypePrefix
     this.uniqueId = Math.random()
     this.url = args.url
     this.width = args.width
     this.left = args.left
     this.top = args.top
-    this.actionMap = {
-      "xtendize:extension-token-requested": sendToken
-    }
+    
+    this.actionMap = {}
+    this.actionMap[`${messageTypePrefix}:extension-token-requested`] = sendToken
 
     // Route messages coming from the app loaded in the window:
     chrome.runtime.onMessageExternal.addListener(
@@ -101,8 +104,10 @@ export class PopUpWindow {
   }
 
   routeMessagesTo(subscribers: object) {
+    const { messageTypePrefix } = this
+    const tokenReq = `${messageTypePrefix}:extension-token-requested`
     for (const [messageType, responder] of Object.entries(subscribers)) {
-      if (messageType == "xtendize:extension-token-requested") continue
+      if (messageType == tokenReq) continue
 
       // if (!this.actionMap[messageType]) this.messageMap[messageType] = []
       // this.actionMap[messageType].push(responder)
@@ -147,10 +152,11 @@ export class PopUpWindow {
     if (tabId != popUpWindowTabId || changeInfo.status !== 'complete') return
   
     // Request the loaded app website to initiate the extension connection:
+    const { messageTypePrefix } = this
     chrome.scripting.executeScript({
       target: { tabId: popUpWindowTabId },
       func: routeMessagesToWindow,
-      args: ['xtendize']
+      args: [messageTypePrefix]
     })
   }
 
