@@ -22,7 +22,8 @@ export class Extension {
   }
 
   start() {
-    console.log("Listening to window events posted by the extension...")
+    const logPrefix = `[${this.messageTypePrefix} website]`
+    console.debug(`${logPrefix} Waiting for connection requests from extension...`)
     window.addEventListener(
       "message",
       this.routeIncomingExtensionMessages.bind(this),

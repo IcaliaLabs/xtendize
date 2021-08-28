@@ -5,7 +5,7 @@ import MessageSender = chrome.runtime.MessageSender
 export function routeMessagesToWindow(messageTypePrefix: string) {
   const logPrefix = `[${messageTypePrefix} extension]`
   const connStartReq = `${messageTypePrefix}:extension-connection-start-requested`
-  console.log(`${logPrefix} Triggering the "${connStartReq}" message to start the connection...`)
+  console.debug(`${logPrefix} Requesting a connection to website...`)
 
   // Note that this script is injected into the app website loaded in the popup.
   // The first thing we'll do is to trigger the 'extension-token-requested'

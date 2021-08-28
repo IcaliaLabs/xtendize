@@ -31,7 +31,6 @@ function getExtensionToken(): Promise<string> {
 }
 
 function sendToken(_message: any, _sender: any, sendResponse: any): void {
-  console.debug("Responding to connection request from website...")
   let extensionToken = generateExtensionToken()
   sendResponse(extensionToken)
   return
