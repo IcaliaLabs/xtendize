@@ -84,6 +84,11 @@ export class Extension {
       (token: string) => {
         console.debug(`${logPrefix} Received token from extension: "${token}". Connection started.`)
         window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
+
+        if (document) {
+          const eventName = `${messageTypePrefix}:extension-connection-started`
+          document.dispatchEvent(new Event(eventName))
+        }
       }
     )
   }
