@@ -15,13 +15,15 @@ export class Extension {
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.messageTypePrefix = args.messageTypePrefix
-    this.actionMap = {
-      "xtendize:extension-token-requested": this.requestTokenFromExtension.bind(this)
-    }
+
+    const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
+    this.actionMap = {}
+    this.actionMap[connStartReq] = this.handleConnectionStartRequest.bind(this)
   }
 
   start() {
-    console.log("Listening to window events posted by the extension...")
+    const logPrefix = `[${this.messageTypePrefix} website]`
+    console.debug(`${logPrefix} Waiting for connection requests from extension...`)
     window.addEventListener(
       "message",
       this.routeIncomingExtensionMessages.bind(this),
@@ -30,8 +32,9 @@ export class Extension {
   }
 
   routeMessagesTo(subscribers: { [name: string]: Function }) {
+    const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
     for (const [messageType, responder] of Object.entries(subscribers)) {
-      if (messageType == "xtendize:extension-token-requested") continue
+      if (messageType == connStartReq) continue
       this.actionMap[messageType] = responder
     }
   }
@@ -62,22 +65,30 @@ export class Extension {
     if (
       typeof type === 'undefined' ||
       typeof type !== 'string' ||
-      !(type.startsWith('xtendize:') || type.startsWith(this.messageTypePrefix))
+      !type.startsWith(this.messageTypePrefix)
     ) return
 
     const action = getActionFor(this.actionMap, type)
     return action(message, sender, sendResponse)
   }
 
-  // Requests a token from Enginear Chrome Extension:
-  private requestTokenFromExtension(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
-    console.debug("requestTokenFromExtension:", message)
+  // Requests a token from the extension:
+  private handleConnectionStartRequest(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
+    const { messageTypePrefix } = this
+    const logPrefix = `[${messageTypePrefix} website]`
+    
+    console.debug(`${logPrefix} Received connection request. Requesting token...`)
     this.sendMessage(
-      { type: "xtendize:extension-token-requested" },
+      { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug("[Enginear website] Received token from extension:", token)
-        window.sessionStorage.setItem("extensionToken", token)
+        console.debug(`${logPrefix} Received token from extension: "${token}". Connection started.`)
+        window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
+
+        if (document) {
+          const eventName = `${messageTypePrefix}:extension-connection-started`
+          document.dispatchEvent(new Event(eventName))
+        }
       }
     )
   }
