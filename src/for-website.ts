@@ -18,7 +18,7 @@ export class Extension {
 
     const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
     this.actionMap = {}
-    this.actionMap[connStartReq] = this.requestTokenFromExtension.bind(this)
+    this.actionMap[connStartReq] = this.handleConnectionStartRequest.bind(this)
   }
 
   start() {
@@ -73,13 +73,16 @@ export class Extension {
   }
 
   // Requests a token from the extension:
-  private requestTokenFromExtension(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
+  private handleConnectionStartRequest(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
     const { messageTypePrefix } = this
+    const logPrefix = `[${messageTypePrefix} website]`
+    
+    console.debug(`${logPrefix} Received connection request. Requesting token...`)
     this.sendMessage(
       { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug(`[${messageTypePrefix} website] Received token from extension:`, token)
+        console.debug(`${logPrefix} Received token from extension:`, token)
         window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
       }
     )
