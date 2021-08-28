@@ -1,3 +1,5 @@
+///<reference types="chrome"/>
+
 import { getActionFor } from "./action-mapping"
 
 function extensionIsActive() {
@@ -15,9 +17,10 @@ export class Extension {
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.messageTypePrefix = args.messageTypePrefix
-    this.actionMap = {
-      "xtendize:extension-token-requested": this.requestTokenFromExtension.bind(this)
-    }
+    this.actionMap = {}
+
+    const tokenReq = `${this.messageTypePrefix}:extension-token-requested`
+    this.actionMap[tokenReq] = this.requestTokenFromExtension.bind(this)
   }
 
   start() {
@@ -30,8 +33,10 @@ export class Extension {
   }
 
   routeMessagesTo(subscribers: { [name: string]: Function }) {
+    const tokenReq = `${this.messageTypePrefix}:extension-token-requested`
+
     for (const [messageType, responder] of Object.entries(subscribers)) {
-      if (messageType == "xtendize:extension-token-requested") continue
+      if (messageType == tokenReq) continue
       this.actionMap[messageType] = responder
     }
   }
@@ -58,26 +63,34 @@ export class Extension {
     const sender = null
     const sendResponse = null
     const { type } = message
+    const { messageTypePrefix } = this
 
     if (
       typeof type === 'undefined' ||
       typeof type !== 'string' ||
-      !(type.startsWith('xtendize:') || type.startsWith(this.messageTypePrefix))
+      !type.startsWith(`${messageTypePrefix}:`)
     ) return
 
     const action = getActionFor(this.actionMap, type)
     return action(message, sender, sendResponse)
   }
 
-  // Requests a token from Enginear Chrome Extension:
+  // Requests a token from the Chrome Extension:
   private requestTokenFromExtension(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
     console.debug("requestTokenFromExtension:", message)
+    const { messageTypePrefix } = this
     this.sendMessage(
-      { type: "xtendize:extension-token-requested" },
+      { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug("[Enginear website] Received token from extension:", token)
+        console.debug(`[${messageTypePrefix} website] Received token from extension:`, token)
         window.sessionStorage.setItem("extensionToken", token)
+
+        if (document) {
+          const eventName = `${messageTypePrefix}:extension-connected`
+          const eventToDispatch = new Event(eventName)
+          document.dispatchEvent(eventToDispatch)
+        }
       }
     )
   }
