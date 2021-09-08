@@ -50,6 +50,7 @@ export class PopUpWindow {
   uniqueId: number
   extensionId: string
   messageTypePrefix: string
+  scriptInjector: (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
 
   constructor(args: any) {
@@ -61,6 +62,7 @@ export class PopUpWindow {
     this.width = args.width
     this.left = args.left
     this.top = args.top
+    this.scriptInjector = this.injectContentScriptWhenReady.bind(this)
     
     this.actionMap = {}
     const tokenReq = `${messageTypePrefix}:extension-token-requested`
@@ -141,10 +143,12 @@ export class PopUpWindow {
     let popUpWindowTabId = (window.tabs || [])[0].id
     chrome.storage.local.set({popUpWindowTabId});
   
-    // Inject the window messaging script, waiting until page is loaded to
-    // inject the content script, or else a "cannot access contents of url """
-    // error will be raised:
-    chrome.tabs.onUpdated.addListener(this.injectContentScriptWhenReady.bind(this))
+    // If not already injected, inject the window messaging script, waiting
+    // until page is loaded to inject the content script, or else a "cannot
+    // access contents of url """ error will be raised:
+    const { scriptInjector } = this
+    const onUpd = chrome.tabs.onUpdated
+    onUpd.hasListener(scriptInjector) || onUpd.addListener(scriptInjector)
   
     return window
   }
