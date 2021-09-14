@@ -177,7 +177,9 @@ export class PopUpWindow {
 
   // listener template method - use this.windowBoundsChangeListener instead!
   private async listenForWindowBoundsChange(window: Window) : Promise<void> {
-    const windowId = await readFromLocalStorage('popUpWindowId')
+    const popUpWindowId = await this.getPopUpWindowId()
+    if (window.id != popUpWindowId) return
+
     this.top = window.top
     this.left = window.left
     this.width = window.width
