@@ -44,6 +44,7 @@ type WindowBounds = {
 }
 
 export class PopUpWindow {
+  id: number | undefined
   url: string
   width: number | undefined
   height: number | undefined
@@ -53,7 +54,6 @@ export class PopUpWindow {
   extensionId: string
   messageTypePrefix: string
   scriptInjector: (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void
-  windowBoundsChangeListener: (window: Window) => void
 
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
   windowResizeWaiters: Array<Promise<Function>>
@@ -69,7 +69,6 @@ export class PopUpWindow {
     this.left = args.left
     this.top = args.top
     this.scriptInjector = this.injectContentScriptWhenReady.bind(this)
-    this.windowBoundsChangeListener = this.listenForWindowBoundsChange.bind(this)
     this.windowResizeWaiters = []
     
     this.actionMap = {}
@@ -80,17 +79,18 @@ export class PopUpWindow {
     chrome.runtime.onMessageExternal.addListener(
       this.routeInboundMessage.bind(this)
     )
+
+    // Listen for window bound changes:
+    chrome.windows.onBoundsChanged.addListener(
+      this.listenForWindowBoundsChange.bind(this)
+    )
   }
 
   async show() : Promise<Window> {
     const { url } = this
 
-    try {
-      let window = await this.getPopUpWindow()
-      if (window.id) return this.focusPopUpWindow(window.id)
-    } catch (e) {
-      console.log("show(): No window:", e)
-    }
+    let windowFocused = await this.focusPopUpWindow()
+    if (windowFocused) return windowFocused
 
     let top = this.top
     let left = this.left
@@ -168,17 +168,16 @@ export class PopUpWindow {
     // If not already injected, inject the window messaging script, waiting
     // until page is loaded to inject the content script, or else a "cannot
     // access contents of url """ error will be raised:
-    const { scriptInjector, windowBoundsChangeListener } = this
+    const { scriptInjector } = this
     const onUpd = chrome.tabs.onUpdated
     onUpd.hasListener(scriptInjector) || onUpd.addListener(scriptInjector)
-
-    chrome.windows.onBoundsChanged.addListener(windowBoundsChangeListener)
   
     return window
   }
 
   // listener template method - use this.windowBoundsChangeListener instead!
-  private listenForWindowBoundsChange(window: Window) : void {
+  private async listenForWindowBoundsChange(window: Window) : Promise<void> {
+    const windowId = await readFromLocalStorage('popUpWindowId')
     this.top = window.top
     this.left = window.left
     this.width = window.width
@@ -207,13 +206,24 @@ export class PopUpWindow {
     })
   }
 
-  async getPopUpWindow() : Promise<Window> {
-    let popUpWindowId = await readFromLocalStorage('activeWindow') as number
+  private async getPopUpWindowId() : Promise<number | undefined> {
+    if (typeof this.id !== undefined) return this.id
+
+    return await readFromLocalStorage('popUpWindowId') as number
+  }
+
+  private async getPopUpWindow() : Promise<Window | undefined> {
+    let popUpWindowId = await this.getPopUpWindowId()
+    if (!popUpWindowId) return
     
     return await chrome.windows.get(popUpWindowId)
   }
 
-  private focusPopUpWindow(windowId: number) : Promise<Window> {
+  private async focusPopUpWindow() : Promise<Window | undefined> {
+    let window = await this.getPopUpWindow()
+    let windowId = window?.id
+    if (!windowId) return
+
     return chrome.windows.update(windowId, {
       drawAttention: true,
       focused: true
