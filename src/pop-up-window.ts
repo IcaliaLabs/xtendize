@@ -93,11 +93,10 @@ export class PopUpWindow {
   }
 
   async show() : Promise<Window> {
-    const { url } = this
-
     let windowFocused = await this.focusPopUpWindow()
     if (windowFocused) return windowFocused
 
+    let url = this.url
     let top = this.top
     let left = this.left
     let width = this.width
@@ -111,6 +110,9 @@ export class PopUpWindow {
       width = savedData.width
       height = savedData.height
     }
+
+    const popUpWindowTabUrl = await readFromLocalStorage('popUpWindowTabUrl') as string
+    if (popUpWindowTabUrl) url = popUpWindowTabUrl
 
     return this.createPopUpWindow({ url, top, left, width, height })
   }
