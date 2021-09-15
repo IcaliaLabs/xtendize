@@ -231,6 +231,8 @@ export class PopUpWindow {
       func: routeMessagesToWindow,
       args: [messageTypePrefix]
     })
+
+    chrome.tabs.onUpdated.removeListener(this.scriptInjector)
   }
 
   private async getPopUpWindowId() : Promise<number | undefined> {
