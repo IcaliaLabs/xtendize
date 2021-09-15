@@ -45,6 +45,7 @@ type WindowBounds = {
 
 export class PopUpWindow {
   id: number | undefined
+  tabId: number | undefined
   url: string
   width: number | undefined
   height: number | undefined
@@ -80,6 +81,11 @@ export class PopUpWindow {
       this.routeInboundMessage.bind(this)
     )
 
+    // Listen for tab changes:
+    chrome.tabs.onUpdated.addListener(
+      this.handlePopUpWindowTabChange.bind(this)
+    )
+
     // Listen for window bound changes:
     chrome.windows.onBoundsChanged.addListener(
       this.listenForWindowBoundsChange.bind(this)
@@ -109,9 +115,14 @@ export class PopUpWindow {
     return this.createPopUpWindow({ url, top, left, width, height })
   }
 
-  async getTab() : Promise<Tab> {
-    let popUpWindowTabId = await readFromLocalStorage('popUpWindowTabId') as number
-    return chrome.tabs.get(popUpWindowTabId)
+  async getTab() : Promise<Tab | undefined> {
+    const window = await this.getPopUpWindow()
+    if (!window) return
+
+    const tabs = window.tabs
+    if (!tabs) return
+
+    return tabs[0]
   }
 
   async sendMessage(message: any, responseCallback?: any): Promise<void> {
@@ -158,12 +169,13 @@ export class PopUpWindow {
   private async createPopUpWindow(createData: WindowCreateData) : Promise<Window> {
     createData.type = "popup"
     createData.focused = true
-    let window = await chrome.windows.create(createData);
-  
-    chrome.storage.local.set({activeWindow: window.id});
-  
-    let popUpWindowTabId = (window.tabs || [])[0].id
-    chrome.storage.local.set({popUpWindowTabId});
+
+    let window = await chrome.windows.create(createData)
+    this.id = window.id
+    chrome.storage.local.set({popUpWindowId: this.id})
+
+    this.tabId = (window.tabs || [])[0].id
+    chrome.storage.local.set({popUpWindowTabId: this.tabId})
   
     // If not already injected, inject the window messaging script, waiting
     // until page is loaded to inject the content script, or else a "cannot
@@ -195,14 +207,25 @@ export class PopUpWindow {
     })
   }
 
+  async handlePopUpWindowTabChange(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
+    let popUpWindowTab = await this.getTab()
+    if (!popUpWindowTab || tabId != popUpWindowTab.id) return
+
+    // For now, only "complete" status will be processed:
+    if (changeInfo.status !== 'complete') return
+
+    // Save the url into the saved state:
+    chrome.storage.local.set({popUpWindowTabUrl: tab.url})
+  }
+
   async injectContentScriptWhenReady(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
-    let popUpWindowTabId = await readFromLocalStorage('popUpWindowTabId') as number
-    if (tabId != popUpWindowTabId || changeInfo.status !== 'complete') return
+    let popUpWindowTab = await this.getTab()
+    if (!popUpWindowTab || tabId != popUpWindowTab.id || changeInfo.status !== 'complete') return
   
     // Request the loaded app website to initiate the extension connection:
     const { messageTypePrefix } = this
     chrome.scripting.executeScript({
-      target: { tabId: popUpWindowTabId },
+      target: { tabId: popUpWindowTab.id },
       func: routeMessagesToWindow,
       args: [messageTypePrefix]
     })
@@ -217,8 +240,15 @@ export class PopUpWindow {
   private async getPopUpWindow() : Promise<Window | undefined> {
     let popUpWindowId = await this.getPopUpWindowId()
     if (!popUpWindowId) return
-    
-    return await chrome.windows.get(popUpWindowId)
+
+    try {
+      return await chrome.windows.get(popUpWindowId, {
+        populate: true,
+        windowTypes: ['popup']
+      })
+    } catch(e) {
+      return
+    }
   }
 
   private async focusPopUpWindow() : Promise<Window | undefined> {
