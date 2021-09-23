@@ -249,9 +249,11 @@ export class PopUpWindow {
     let windowId = window?.id
     if (!windowId) return
 
-    return chrome.windows.update(windowId, {
+    await chrome.windows.update(windowId, {
       drawAttention: true,
       focused: true
     })
+
+    return window
   }
 }
