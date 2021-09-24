@@ -54,7 +54,6 @@ export class PopUpWindow {
   uniqueId: number
   extensionId: string
   messageTypePrefix: string
-  scriptInjector: (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void
 
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
   windowResizeWaiters: Array<Promise<Function>>
@@ -69,7 +68,6 @@ export class PopUpWindow {
     this.height = args.height
     this.left = args.left
     this.top = args.top
-    this.scriptInjector = this.injectContentScriptWhenReady.bind(this)
     this.windowResizeWaiters = []
     
     this.actionMap = {}
@@ -179,13 +177,6 @@ export class PopUpWindow {
     this.tabId = (window.tabs || [])[0].id
     chrome.storage.local.set({popUpWindowTabId: this.tabId})
   
-    // If not already injected, inject the window messaging script, waiting
-    // until page is loaded to inject the content script, or else a "cannot
-    // access contents of url """ error will be raised:
-    const { scriptInjector } = this
-    const onUpd = chrome.tabs.onUpdated
-    onUpd.hasListener(scriptInjector) || onUpd.addListener(scriptInjector)
-  
     return window
   }
 
@@ -207,6 +198,8 @@ export class PopUpWindow {
         height: this.height
       })
     })
+
+    return
   }
 
   async handlePopUpWindowTabChange(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
@@ -218,13 +211,9 @@ export class PopUpWindow {
 
     // Save the url into the saved state:
     chrome.storage.local.set({popUpWindowTabUrl: tab.url})
-  }
 
-  async injectContentScriptWhenReady(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
-    let popUpWindowTab = await this.getTab()
-    if (!popUpWindowTab || tabId != popUpWindowTab.id || changeInfo.status !== 'complete') return
-  
-    // Request the loaded app website to initiate the extension connection:
+    // Request the loaded app website to initiate the extension connection,
+    // installing the window message routing when the page is initialized:
     const { messageTypePrefix } = this
     chrome.scripting.executeScript({
       target: { tabId: popUpWindowTab.id },
@@ -232,7 +221,7 @@ export class PopUpWindow {
       args: [messageTypePrefix]
     })
 
-    chrome.tabs.onUpdated.removeListener(this.scriptInjector)
+    return
   }
 
   private async getPopUpWindowId() : Promise<number | undefined> {
@@ -260,9 +249,11 @@ export class PopUpWindow {
     let windowId = window?.id
     if (!windowId) return
 
-    return chrome.windows.update(windowId, {
+    await chrome.windows.update(windowId, {
       drawAttention: true,
       focused: true
     })
+
+    return window
   }
 }
