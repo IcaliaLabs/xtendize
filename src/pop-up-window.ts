@@ -44,7 +44,6 @@ type WindowBounds = {
 }
 
 export class PopUpWindow {
-  id: number | undefined
   tabId: number | undefined
   url: string
   width: number | undefined
@@ -54,6 +53,7 @@ export class PopUpWindow {
   uniqueId: number
   extensionId: string
   messageTypePrefix: string
+  logPrefix: string
 
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
   windowResizeWaiters: Array<Promise<Function>>
@@ -62,6 +62,7 @@ export class PopUpWindow {
     const { messageTypePrefix } = args
     this.extensionId = args.extensionId
     this.messageTypePrefix = messageTypePrefix
+    this.logPrefix = `[${this.messageTypePrefix} extension]`
     this.uniqueId = Math.random()
     this.url = args.url
     this.width = args.width
@@ -69,7 +70,7 @@ export class PopUpWindow {
     this.left = args.left
     this.top = args.top
     this.windowResizeWaiters = []
-    
+
     this.actionMap = {}
     const tokenReq = `${messageTypePrefix}:extension-token-requested`
     this.actionMap[tokenReq] = this.handleTokenRequest.bind(this)
@@ -117,17 +118,47 @@ export class PopUpWindow {
 
   async getTab() : Promise<Tab | undefined> {
     const window = await this.getPopUpWindow()
-    if (!window) return
+    if (!window) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.getTab:`,
+        "Calling this.getPopUpWindow() returned undefined. window:",
+        window
+      )
+      return
+    }
 
     const tabs = window.tabs
-    if (!tabs) return
+    if (!tabs) {
+      console.warn(
+        `${this.logPrefix} getTab:`,
+        "The returned window's .tabs is empty-ish. window.tabs:",
+        tabs
+      )
+      return
+    }
 
     return tabs[0]
   }
 
   async sendMessage(message: any, responseCallback?: any): Promise<void> {
     let popUpTab = await this.getTab()
-    if (!popUpTab || !popUpTab.id) return
+    if (!popUpTab) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.sendMessage:`,
+        "Calling this.getTab() returned undefined-ish. popUpTab:",
+        popUpTab
+      )
+      return
+    }
+
+    if (!popUpTab.id) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.sendMessage:`,
+        "Calling this.getTab() returned an object without an id. undefined-ish. popUpTab:",
+        popUpTab
+      )
+      return
+    }
 
     return chrome.tabs.sendMessage(popUpTab.id, message, responseCallback)
   }
@@ -160,8 +191,7 @@ export class PopUpWindow {
 
   private handleTokenRequest(_message: any, _sender: any, sendResponse: any): void {
     let extensionToken = generateExtensionToken()
-    const logPrefix = `[${this.messageTypePrefix} extension]`
-    console.debug(`${logPrefix} Received token request. Responding with token "${extensionToken}"...`)
+    console.debug(`${this.logPrefix} Received token request. Responding with token "${extensionToken}"...`)
     sendResponse(extensionToken)
     return
   }
@@ -171,12 +201,11 @@ export class PopUpWindow {
     createData.focused = true
 
     let window = await chrome.windows.create(createData)
-    this.id = window.id
-    chrome.storage.local.set({popUpWindowId: this.id})
+    chrome.storage.local.set({popUpWindowId: window.id})
 
     this.tabId = (window.tabs || [])[0].id
     chrome.storage.local.set({popUpWindowTabId: this.tabId})
-  
+
     return window
   }
 
@@ -204,7 +233,17 @@ export class PopUpWindow {
 
   async handlePopUpWindowTabChange(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
     let popUpWindowTab = await this.getTab()
-    if (!popUpWindowTab || tabId != popUpWindowTab.id) return
+    console.debug(`${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange: popUpWindowTab:`, popUpWindowTab)
+    if (!popUpWindowTab) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange:`,
+        "Calling this.getTab returned undefined. popUpWindowTab:",
+        popUpWindowTab
+      )
+      return
+    }
+
+    if (tabId != popUpWindowTab.id) return
 
     // For now, only "complete" status will be processed:
     if (changeInfo.status !== 'complete') return
@@ -225,14 +264,27 @@ export class PopUpWindow {
   }
 
   private async getPopUpWindowId() : Promise<number | undefined> {
-    if (typeof this.id !== undefined) return this.id
+    const popUpWindowId = await readFromLocalStorage('popUpWindowId') as number
+    if (!popUpWindowId) console.warn(
+      `${this.logPrefix} PopUpWindow.getPopUpWindowId:`,
+      "Calling readFromLocalStorage('popUpWindowId') returned undefined: popUpWindowId:",
+      popUpWindowId,
+      "If this is the first time using the extension or reloading it, it's OK"
+    )
 
-    return await readFromLocalStorage('popUpWindowId') as number
+    return popUpWindowId
   }
 
   private async getPopUpWindow() : Promise<Window | undefined> {
     let popUpWindowId = await this.getPopUpWindowId()
-    if (!popUpWindowId) return
+    if (!popUpWindowId) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.getPopUpWindow:`,
+        "Calling this.getPopUpWindowId() returned undefined: popUpWindowId:",
+        popUpWindowId
+      )
+      return
+    }
 
     try {
       return await chrome.windows.get(popUpWindowId, {
@@ -240,6 +292,11 @@ export class PopUpWindow {
         windowTypes: ['popup']
       })
     } catch(e) {
+      console.warn(
+        `${this.logPrefix} getPopUpWindow:`,
+        "Calling chrome.windows.get raised an error:",
+        e
+      )
       return
     }
   }

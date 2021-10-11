@@ -11,16 +11,18 @@ export function routeMessagesToWindow(messageTypePrefix: string) {
   const mOrigin = '*'
 
   const messageRouterKey = `${messageTypePrefix}MessageRouter` as string
-  if (!(window as any)[messageRouterKey]) {
-    console.debug(`${logPrefix} Installing window message routing as window.${messageRouterKey}...`);
+  const installedMessageRouter = (window as any)[messageRouterKey]
+  if (installedMessageRouter) return
 
-    (window as any)[messageRouterKey] = (message: any, sender: MessageSender, sendResponse: any) => {
-      console.debug("Posting message to window:", message)
-      window.postMessage(message, mOrigin)  
-    }
-
-    chrome.runtime.onMessage.addListener((window as any)[messageRouterKey])
+  console.debug(`${logPrefix} Installing window message routing as window.${messageRouterKey}...`)
+  const listener = (message: any, sender: MessageSender, sendResponse: any) => {
+    console.debug("Posting message to window:", message)
+    window.postMessage(message, mOrigin)
   }
+
+  chrome.runtime.onMessage.addListener(listener);
+
+  (window as any)[messageRouterKey] = listener
 
   // Note that this script is injected into the app website loaded in the popup.
   // The first thing we'll do is to trigger the 'extension-token-requested'
