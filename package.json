@@ -1,6 +1,6 @@
 {
   "name": "xtendize",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "Helps us create chrome extension apps",
   "main": "lib/main.js",
   "scripts": {
