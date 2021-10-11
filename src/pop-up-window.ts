@@ -44,7 +44,6 @@ type WindowBounds = {
 }
 
 export class PopUpWindow {
-  id: number | undefined
   tabId: number | undefined
   url: string
   width: number | undefined
@@ -202,12 +201,11 @@ export class PopUpWindow {
     createData.focused = true
 
     let window = await chrome.windows.create(createData)
-    this.id = window.id
-    chrome.storage.local.set({popUpWindowId: this.id})
+    chrome.storage.local.set({popUpWindowId: window.id})
 
     this.tabId = (window.tabs || [])[0].id
     chrome.storage.local.set({popUpWindowTabId: this.tabId})
-  
+
     return window
   }
 
