@@ -54,6 +54,7 @@ export class PopUpWindow {
   uniqueId: number
   extensionId: string
   messageTypePrefix: string
+  logPrefix: string
 
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
   windowResizeWaiters: Array<Promise<Function>>
@@ -62,6 +63,7 @@ export class PopUpWindow {
     const { messageTypePrefix } = args
     this.extensionId = args.extensionId
     this.messageTypePrefix = messageTypePrefix
+    this.logPrefix = `[${this.messageTypePrefix} extension]`
     this.uniqueId = Math.random()
     this.url = args.url
     this.width = args.width
@@ -160,8 +162,7 @@ export class PopUpWindow {
 
   private handleTokenRequest(_message: any, _sender: any, sendResponse: any): void {
     let extensionToken = generateExtensionToken()
-    const logPrefix = `[${this.messageTypePrefix} extension]`
-    console.debug(`${logPrefix} Received token request. Responding with token "${extensionToken}"...`)
+    console.debug(`${this.logPrefix} Received token request. Responding with token "${extensionToken}"...`)
     sendResponse(extensionToken)
     return
   }
