@@ -70,7 +70,7 @@ export class PopUpWindow {
     this.left = args.left
     this.top = args.top
     this.windowResizeWaiters = []
-    
+
     this.actionMap = {}
     const tokenReq = `${messageTypePrefix}:extension-token-requested`
     this.actionMap[tokenReq] = this.handleTokenRequest.bind(this)
