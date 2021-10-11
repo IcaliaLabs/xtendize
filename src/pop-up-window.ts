@@ -233,7 +233,7 @@ export class PopUpWindow {
 
   async handlePopUpWindowTabChange(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
     let popUpWindowTab = await this.getTab()
-    console.debug(`${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange: popUpWindowTab:`, popUpWindowTab)
+
     if (!popUpWindowTab) {
       console.warn(
         `${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange:`,
