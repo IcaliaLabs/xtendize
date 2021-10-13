@@ -5,7 +5,7 @@ import { routeMessagesToWindow } from "./messaging/to-window"
 
 import Tab = chrome.tabs.Tab
 import TabChangeInfo = chrome.tabs.TabChangeInfo
-
+import ScriptInjection = chrome.scripting.ScriptInjection
 
 import Window = chrome.windows.Window
 import WindowCreateData = chrome.windows.CreateData
@@ -43,6 +43,18 @@ type WindowBounds = {
   height: number | undefined
 }
 
+class ScriptInjectionsRegistry {
+  registeredScriptInjections: Array<ScriptInjection>
+
+  constructor(initialScripts: Array<any>) {
+    this.registeredScriptInjections = initialScripts || []
+  }
+
+  add(injection: ScriptInjection): void {
+    this.registeredScriptInjections.push(injection)
+  }
+}
+
 export class PopUpWindow {
   tabId: number | undefined
   url: string
@@ -57,6 +69,8 @@ export class PopUpWindow {
 
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
   windowResizeWaiters: Array<Promise<Function>>
+
+  scripts: ScriptInjectionsRegistry
 
   constructor(args: any) {
     const { messageTypePrefix } = args
@@ -75,6 +89,10 @@ export class PopUpWindow {
     const tokenReq = `${messageTypePrefix}:extension-token-requested`
     this.actionMap[tokenReq] = this.handleTokenRequest.bind(this)
 
+    this.scripts = new ScriptInjectionsRegistry([
+      { func: routeMessagesToWindow, args: [this.messageTypePrefix] }
+    ])
+
     // Route messages coming from the app loaded in the window:
     chrome.runtime.onMessageExternal.addListener(
       this.routeInboundMessage.bind(this)
@@ -89,11 +107,25 @@ export class PopUpWindow {
     chrome.windows.onBoundsChanged.addListener(
       this.listenForWindowBoundsChange.bind(this)
     )
+
+    chrome.windows.onRemoved.addListener(
+      this.handleWindowClose.bind(this)
+    )
+  }
+
+  async handleWindowClose(windowId: number) : Promise<void> {
+    chrome.storage.local.remove(['popUpWindowId', 'popUpWindowTabId'])
+
+    return
   }
 
   async show() : Promise<Window> {
-    let windowFocused = await this.focusPopUpWindow()
-    if (windowFocused) return windowFocused
+    const windowIsOpen = await this.getWindowIsOpen()
+
+    if (windowIsOpen) {
+      const windowFocused = await this.focusPopUpWindow()
+      if (windowFocused) return windowFocused
+    }
 
     let url = this.url
     let top = this.top
@@ -117,11 +149,14 @@ export class PopUpWindow {
   }
 
   async getTab() : Promise<Tab | undefined> {
+    const windowIsOpen = await this.getWindowIsOpen()
+    if (!windowIsOpen) return
+
     const window = await this.getPopUpWindow()
     if (!window) {
-      console.warn(
+      if (windowIsOpen) console.warn(
         `${this.logPrefix} PopUpWindow.getTab:`,
-        "Calling this.getPopUpWindow() returned undefined. window:",
+        "Calling this.getPopUpWindow() unexpectedly returned undefined. window:",
         window
       )
       return
@@ -141,12 +176,14 @@ export class PopUpWindow {
   }
 
   async sendMessage(message: any, responseCallback?: any): Promise<void> {
+    const windowIsOpen = await this.getWindowIsOpen()
+    if (!windowIsOpen) return
+
     let popUpTab = await this.getTab()
     if (!popUpTab) {
       console.warn(
         `${this.logPrefix} PopUpWindow.sendMessage:`,
-        "Calling this.getTab() returned undefined-ish. popUpTab:",
-        popUpTab
+        "Calling this.getTab() unexpectedly returned undefined"
       )
       return
     }
@@ -154,12 +191,13 @@ export class PopUpWindow {
     if (!popUpTab.id) {
       console.warn(
         `${this.logPrefix} PopUpWindow.sendMessage:`,
-        "Calling this.getTab() returned an object without an id. undefined-ish. popUpTab:",
+        "Calling this.getTab() unexpectedly returned an object without an id. popUpTab:",
         popUpTab
       )
       return
     }
 
+    console.debug(`${this.logPrefix}: PopUpWindow.sendMessage:`, message, "callback:", responseCallback)
     return chrome.tabs.sendMessage(popUpTab.id, message, responseCallback)
   }
 
@@ -202,6 +240,7 @@ export class PopUpWindow {
 
     let window = await chrome.windows.create(createData)
     chrome.storage.local.set({popUpWindowId: window.id})
+    chrome.storage.local.set({popUpWindowOpen: true})
 
     this.tabId = (window.tabs || [])[0].id
     chrome.storage.local.set({popUpWindowTabId: this.tabId})
@@ -231,51 +270,50 @@ export class PopUpWindow {
     return
   }
 
+  private async getWindowIsOpen(): Promise<any> {
+    const itIs = await readFromLocalStorage('popUpWindowOpen')
+    return !!itIs
+  }
+
   async handlePopUpWindowTabChange(tabId: number, changeInfo: TabChangeInfo, tab: Tab) : Promise<void> {
-    let popUpWindowTab = await this.getTab()
-
-    if (!popUpWindowTab) {
-      console.warn(
-        `${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange:`,
-        "Calling this.getTab returned undefined. popUpWindowTab:",
-        popUpWindowTab
-      )
-      return
-    }
-
+    const popUpWindowTab = await this.getTab()
+    if (!popUpWindowTab) return
     if (tabId != popUpWindowTab.id) return
 
     // For now, only "complete" status will be processed:
     if (changeInfo.status !== 'complete') return
 
     // Save the url into the saved state:
+    console.debug(`${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange: saving new URL to saved window state:`, tab.url)
     chrome.storage.local.set({popUpWindowTabUrl: tab.url})
 
-    // Request the loaded app website to initiate the extension connection,
-    // installing the window message routing when the page is initialized:
-    const { messageTypePrefix } = this
-    chrome.scripting.executeScript({
-      target: { tabId: popUpWindowTab.id },
-      func: routeMessagesToWindow,
-      args: [messageTypePrefix]
+    // Install all the registered content scripts, including the script that
+    // sets the window message routing when the page is initialized:
+    this.scripts.registeredScriptInjections.forEach(script => {
+      chrome.scripting.executeScript({ ...script, target: { tabId } })
     })
 
     return
   }
 
   private async getPopUpWindowId() : Promise<number | undefined> {
+    const popUpWindowIsOpen = await this.getWindowIsOpen()
+    if (!popUpWindowIsOpen) return
     const popUpWindowId = await readFromLocalStorage('popUpWindowId') as number
-    if (!popUpWindowId) console.warn(
-      `${this.logPrefix} PopUpWindow.getPopUpWindowId:`,
-      "Calling readFromLocalStorage('popUpWindowId') returned undefined: popUpWindowId:",
-      popUpWindowId,
-      "If this is the first time using the extension or reloading it, it's OK"
-    )
+    if (!popUpWindowId) {
+      console.warn(
+        `${this.logPrefix} PopUpWindow.getPopUpWindowId:`,
+        "Calling readFromLocalStorage('popUpWindowId') unexpectedly returned undefined.",
+        "If this is the first time using the extension or reloading it, it's OK"
+      )
+      return
+    }
 
     return popUpWindowId
   }
 
   private async getPopUpWindow() : Promise<Window | undefined> {
+
     let popUpWindowId = await this.getPopUpWindowId()
     if (!popUpWindowId) {
       console.warn(
