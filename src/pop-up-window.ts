@@ -113,8 +113,12 @@ export class PopUpWindow {
     )
   }
 
-  async handleWindowClose(windowId: number) : Promise<void> {
-    chrome.storage.local.remove(['popUpWindowId', 'popUpWindowTabId'])
+  handleWindowClose(windowId: number) : void {
+    chrome.storage.local.remove([
+      'popUpWindowOpen',
+      'popUpWindowId',
+      'popUpWindowTabId'
+    ])
 
     return
   }
