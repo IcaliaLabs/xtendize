@@ -152,6 +152,18 @@ export class PopUpWindow {
     return this.createPopUpWindow({ url, top, left, width, height })
   }
 
+  async close() : Promise<void> {
+    let window = await this.getPopUpWindow()
+    let windowId = window?.id
+    if (!windowId) return
+
+    return chrome.windows.remove(windowId)
+  }
+
+  async isOpen() : Promise<boolean> {
+    return (await this.getWindowIsOpen()) && this.getPopUpWindow()
+  }
+
   async getTab() : Promise<Tab | undefined> {
     const windowIsOpen = await this.getWindowIsOpen()
     if (!windowIsOpen) return
