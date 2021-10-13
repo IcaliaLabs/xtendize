@@ -3,7 +3,7 @@
 import MessageSender = chrome.runtime.MessageSender
 
 export function routeMessagesToWindow(messageTypePrefix: string) {
-  const logPrefix = `[${messageTypePrefix} extension]`
+  const logPrefix = `[${messageTypePrefix} extension window messaging router]`
   const connStartReq = `${messageTypePrefix}:extension-connection-start-requested`
   console.debug(`${logPrefix} Requesting a connection to website...`)
 
@@ -12,7 +12,10 @@ export function routeMessagesToWindow(messageTypePrefix: string) {
 
   const messageRouterKey = `${messageTypePrefix}MessageRouter` as string
   const installedMessageRouter = (window as any)[messageRouterKey]
-  if (installedMessageRouter) return
+  if (installedMessageRouter) {
+    console.debug(`${logPrefix} Message router already installed.`)
+    return
+  }
 
   console.debug(`${logPrefix} Installing window message routing as window.${messageRouterKey}...`)
   const listener = (message: any, sender: MessageSender, sendResponse: any) => {
