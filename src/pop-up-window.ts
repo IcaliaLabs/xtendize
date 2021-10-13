@@ -157,6 +157,12 @@ export class PopUpWindow {
     let windowId = window?.id
     if (!windowId) return
 
+    chrome.storage.local.remove([
+      'popUpWindowOpen',
+      'popUpWindowId',
+      'popUpWindowTabId'
+    ])
+
     return chrome.windows.remove(windowId)
   }
 
