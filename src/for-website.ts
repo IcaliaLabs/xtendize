@@ -22,8 +22,7 @@ export class Extension {
   }
 
   start() {
-    const logPrefix = `[${this.messageTypePrefix} website]`
-    console.debug(`${logPrefix} Waiting for connection requests from extension...`)
+    this.debug("Waiting for connection requests from extension...")
     window.addEventListener(
       "message",
       this.routeIncomingExtensionMessages.bind(this),
@@ -41,7 +40,7 @@ export class Extension {
 
   sendMessage(message: any, options: chrome.runtime.MessageOptions, responseCallback?: ((response: any) => void) | undefined) {
     if (!extensionIsActive()) {
-      console.warn("The extension is not active")
+      this.warn("The extension is not active")
       return
     }
 
@@ -75,15 +74,13 @@ export class Extension {
   // Requests a token from the extension:
   private handleConnectionStartRequest(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
     const { messageTypePrefix } = this
-    const logPrefix = `[${messageTypePrefix} website]`
-    
-    console.debug(`${logPrefix} Received connection request. Requesting token...`)
+    this.debug("Received connection request. Requesting token...")
+
     this.sendMessage(
       { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug(`${logPrefix} Received token from extension: "${token}". Connection started.`)
-        window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
+        this.debug(`Received token from extension: "${token}". Connection started.`)
 
         if (document) {
           const eventName = `${messageTypePrefix}:extension-connection-started`
@@ -91,5 +88,13 @@ export class Extension {
         }
       }
     )
+  }
+
+  private debug(message: any, ...extra: any[]) {
+    console.debug(`[${this.messageTypePrefix} website] ${message}`, ...extra)
+  }
+
+  private warn(message: any, ...extra: any[]) {
+    console.warn(`[${this.messageTypePrefix} website] ${message}`, ...extra)
   }
 }
