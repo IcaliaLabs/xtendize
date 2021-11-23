@@ -40,6 +40,14 @@ export class Extension {
     }
   }
 
+  stopRoutingMessagesTo(subscribers?: { [name: string]: Function }) {
+    if (!subscribers) return this.actionMap = {}
+
+    for (const [messageType, _responder] of Object.entries(subscribers)) {
+      delete this.actionMap[messageType]
+    }
+  }
+
   sendMessage(message: any, options: chrome.runtime.MessageOptions, responseCallback?: ((response: any) => void) | undefined) {
     if (!extensionIsActive()) {
       this.warn("The extension is not active")
