@@ -9,12 +9,14 @@ function extensionIsActive() {
 
 export class Extension {
   extensionId: string
+  tokenStorageKey: string
   messageTypePrefix: string
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
 
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.messageTypePrefix = args.messageTypePrefix
+    this.tokenStorageKey = `${this.messageTypePrefix}:extension-token`
 
     const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
     this.actionMap = {}
@@ -81,6 +83,7 @@ export class Extension {
       {},
       (token: string) => {
         this.debug(`Received token from extension: "${token}". Connection started.`)
+        window.sessionStorage.setItem(this.tokenStorageKey, token)
 
         if (document) {
           const eventName = `${messageTypePrefix}:extension-connection-started`
