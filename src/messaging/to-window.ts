@@ -3,28 +3,40 @@
 import MessageSender = chrome.runtime.MessageSender
 
 export function routeMessagesToWindow(messageTypePrefix: string) {
-  const logPrefix = `[${messageTypePrefix} extension window messaging router]`
+  const debug = (message: any, ...extra: any[]) => {
+    console.debug(
+      `[${messageTypePrefix} extension window messaging router] ${message}`,
+      ...extra
+    )
+  }
+
+  const camelize = (text: string): string => {
+    return text.replace(/^([A-Z])|[\s-_]+(\w)/g, (_match, p1, p2, _offset) => {
+      if (p2) return p2.toUpperCase()
+      return p1.toLowerCase()
+    })
+  }
+
   const connStartReq = `${messageTypePrefix}:extension-connection-start-requested`
-  console.debug(`${logPrefix} Requesting a connection to website...`)
+  debug(`Requesting a connection to website...`)
 
   // TODO: Figure out the origin thing...
   const mOrigin = '*'
 
-  const messageRouterKey = `${messageTypePrefix}MessageRouter` as string
+  const messageRouterKey = `${camelize(messageTypePrefix)}MessageRouter`
   const installedMessageRouter = (window as any)[messageRouterKey]
   if (installedMessageRouter) {
-    console.debug(`${logPrefix} Message router already installed.`)
+    debug("Message router already installed.")
     return
   }
 
-  console.debug(`${logPrefix} Installing window message routing as window.${messageRouterKey}...`)
+  debug(`Installing window message routing as window.${messageRouterKey}...`)
   const listener = (message: any, sender: MessageSender, sendResponse: any) => {
-    console.debug("Posting message to window:", message)
+    debug("Posting message to window:", message)
     window.postMessage(message, mOrigin)
   }
 
-  chrome.runtime.onMessage.addListener(listener);
-
+  chrome.runtime.onMessage.addListener(listener); // Why is the semicolon required?
   (window as any)[messageRouterKey] = listener
 
   // Note that this script is injected into the app website loaded in the popup.
