@@ -9,12 +9,14 @@ function extensionIsActive() {
 
 export class Extension {
   extensionId: string
+  tokenStorageKey: string
   messageTypePrefix: string
   actionMap: { [name: string]: Function } // { [name: string]: Array<Function> }
 
   constructor(args: any) {
     this.extensionId = args.extensionId
     this.messageTypePrefix = args.messageTypePrefix
+    this.tokenStorageKey = `${this.messageTypePrefix}:extension-token`
 
     const connStartReq = `${this.messageTypePrefix}:extension-connection-start-requested`
     this.actionMap = {}
@@ -22,8 +24,7 @@ export class Extension {
   }
 
   start() {
-    const logPrefix = `[${this.messageTypePrefix} website]`
-    console.debug(`${logPrefix} Waiting for connection requests from extension...`)
+    this.debug("Waiting for connection requests from extension...")
     window.addEventListener(
       "message",
       this.routeIncomingExtensionMessages.bind(this),
@@ -39,9 +40,17 @@ export class Extension {
     }
   }
 
+  stopRoutingMessagesTo(subscribers?: { [name: string]: Function }) {
+    if (!subscribers) return this.actionMap = {}
+
+    for (const [messageType, _responder] of Object.entries(subscribers)) {
+      delete this.actionMap[messageType]
+    }
+  }
+
   sendMessage(message: any, options: chrome.runtime.MessageOptions, responseCallback?: ((response: any) => void) | undefined) {
     if (!extensionIsActive()) {
-      console.warn("The extension is not active")
+      this.warn("The extension is not active")
       return
     }
 
@@ -75,15 +84,14 @@ export class Extension {
   // Requests a token from the extension:
   private handleConnectionStartRequest(message: any, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: any) => void) {
     const { messageTypePrefix } = this
-    const logPrefix = `[${messageTypePrefix} website]`
-    
-    console.debug(`${logPrefix} Received connection request. Requesting token...`)
+    this.debug("Received connection request. Requesting token...")
+
     this.sendMessage(
       { type: `${messageTypePrefix}:extension-token-requested` },
       {},
       (token: string) => {
-        console.debug(`${logPrefix} Received token from extension: "${token}". Connection started.`)
-        window.sessionStorage.setItem(`${messageTypePrefix}:extension-token`, token)
+        this.debug(`Received token from extension: "${token}". Connection started.`)
+        window.sessionStorage.setItem(this.tokenStorageKey, token)
 
         if (document) {
           const eventName = `${messageTypePrefix}:extension-connection-started`
@@ -91,5 +99,13 @@ export class Extension {
         }
       }
     )
+  }
+
+  private debug(message: any, ...extra: any[]) {
+    console.debug(`[${this.messageTypePrefix} website] ${message}`, ...extra)
+  }
+
+  private warn(message: any, ...extra: any[]) {
+    console.warn(`[${this.messageTypePrefix} website] ${message}`, ...extra)
   }
 }
