@@ -197,6 +197,16 @@ export class PopUpWindow {
     return tabs[0]
   }
 
+  async executeScript(injection: ScriptInjection) : Promise<chrome.scripting.InjectionResult[] | undefined> {
+    const popUpWindowTab = await this.getTab()
+    if (!popUpWindowTab) return
+    const tabId = popUpWindowTab.id
+    if (!tabId) return
+
+    // Execute the script in the popUp window tab:
+    return chrome.scripting.executeScript({ ...injection, target: { tabId } })
+  }
+
   async sendMessage(message: any, responseCallback?: any): Promise<void> {
     const windowIsOpen = await this.getWindowIsOpen()
     if (!windowIsOpen) return
@@ -307,13 +317,11 @@ export class PopUpWindow {
 
     // Save the url into the saved state:
     console.debug(`${this.logPrefix} PopUpWindow.handlePopUpWindowTabChange: saving new URL to saved window state:`, tab.url)
-    chrome.storage.local.set({popUpWindowTabUrl: tab.url})
+    chrome.storage.local.set({ popUpWindowTabUrl: tab.url })
 
     // Install all the registered content scripts, including the script that
     // sets the window message routing when the page is initialized:
-    this.scripts.registeredScriptInjections.forEach(script => {
-      chrome.scripting.executeScript({ ...script, target: { tabId } })
-    })
+    this.scripts.registeredScriptInjections.forEach(script => this.executeScript(script))
 
     return
   }
