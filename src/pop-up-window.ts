@@ -326,7 +326,7 @@ export class PopUpWindow {
     return
   }
 
-  private async getPopUpWindowId() : Promise<number | undefined> {
+  public async getPopUpWindowId() : Promise<number | undefined> {
     const popUpWindowIsOpen = await this.getWindowIsOpen()
     if (!popUpWindowIsOpen) return
     const popUpWindowId = await readFromLocalStorage('popUpWindowId') as number
@@ -342,8 +342,7 @@ export class PopUpWindow {
     return popUpWindowId
   }
 
-  private async getPopUpWindow() : Promise<Window | undefined> {
-
+  public async getPopUpWindow() : Promise<Window | undefined> {
     let popUpWindowId = await this.getPopUpWindowId()
     if (!popUpWindowId) {
       console.warn(
